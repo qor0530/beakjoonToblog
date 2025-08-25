@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>백준 To Tistory</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>백준 To Tistory</h2>
+        
+        <div class="problem-info">
+            <div class="info-item">
+                <span class="label">문제 번호:</span>
+                <span id="problemNum">-</span>
+            </div>
+            <div class="info-item">
+                <span class="label">문제 제목:</span>
+                <span id="problemTitle">-</span>
+            </div>
+        </div>
+
+        <div class="language-select">
+            <label for="language">사용 언어:</label>
+            <select id="language">
+                <option value="Python">Python</option>
+                <option value="Java">Java</option>
+                <option value="C++">C++</option>
+                <option value="C">C</option>
+                <option value="JavaScript">JavaScript</option>
+                <option value="Go">Go</option>
+                <option value="Rust">Rust</option>
+                <option value="Kotlin">Kotlin</option>
+                <option value="Swift">Swift</option>
+                <option value="기타">기타</option>
+            </select>
+        </div>
+
+        <div class="solution-section">
+            <label for="solutionText">해설 작성:</label>
+            <textarea id="solutionText" placeholder="문제 해설과 어려운 부분을 작성해주세요..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button id="extractBtn" class="btn primary">문제 정보 추출</button>
+            <button id="generateBtn" class="btn success" disabled>내용 작성</button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
+

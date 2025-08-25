@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "백준 To Tistory",
+  "version": "1.0",
+  "description": "백준 문제 풀이를 Tistory 블로그 포스팅용으로 정리해주는 확장 프로그램",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://www.acmicpc.net/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "백준 To Tistory"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.acmicpc.net/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "256": "icons/icon256.png"
+  }
+}
