@@ -1,4 +1,4 @@
-// 백준 페이지에서 데이터를 추출하는 스크립트
+// 백준 페이지에서 데이터를 추출하는 스크립트 (Request 방식)
 class BaekjoonDataExtractor {
     constructor() {
         this.problemData = {};
@@ -26,110 +26,6 @@ class BaekjoonDataExtractor {
             return match[1];
         }
         return null;
-    }
-
-    // problem 페이지에서 문제 정보 추출
-    async extractProblemInfo() {
-        try {
-            // 문제 제목
-            const titleElement = document.querySelector('#problem_title');
-            const title = titleElement ? titleElement.textContent.trim() : '';
-
-            // 문제 설명
-            const descriptionElement = document.querySelector('#problem_description');
-            const description = descriptionElement ? descriptionElement.textContent.trim() : '';
-
-            // 입력/출력 조건
-            const inputElement = document.querySelector('#problem_input');
-            const input = inputElement ? inputElement.textContent.trim() : '';
-
-            const outputElement = document.querySelector('#problem_output');
-            const output = outputElement ? outputElement.textContent.trim() : '';
-
-            // 제한 사항
-            const limitElements = document.querySelectorAll('.limit');
-            const limits = Array.from(limitElements).map(el => el.textContent.trim());
-
-            this.problemData = {
-                title,
-                description,
-                input,
-                output,
-                limits
-            };
-
-            return this.problemData;
-        } catch (error) {
-            console.error('문제 정보 추출 중 오류:', error);
-            return null;
-        }
-    }
-
-    // 소스 코드 페이지에서 코드 추출 (textarea 방식)
-    extractSourceCode() {
-        try {
-            console.log('=== 소스 코드 추출 시작 ===');
-            console.log('현재 페이지 URL:', window.location.href);
-            console.log('현재 페이지 제목:', document.title);
-            
-            // 방법 1: textarea에서 직접 추출 (가장 확실한 방법)
-            const textareaElement = document.querySelector('textarea[name="source"]');
-            console.log('찾은 textarea 요소:', textareaElement);
-            
-            if (textareaElement) {
-                console.log('textarea value 길이:', textareaElement.value.length);
-                console.log('textarea value 내용:', textareaElement.value);
-                
-                this.sourceCode = textareaElement.value;
-                console.log('✅ textarea에서 추출된 코드:', this.sourceCode);
-                return this.sourceCode;
-            }
-            
-            console.log('❌ textarea를 찾을 수 없음, CodeMirror 방식 시도...');
-            
-            // 방법 2: CodeMirror 구조에서 코드 추출
-            const codeMirrorLines = document.querySelectorAll('.CodeMirror-line');
-            console.log('찾은 CodeMirror 라인 수:', codeMirrorLines.length);
-            
-            if (codeMirrorLines.length > 0) {
-                let code = '';
-                
-                codeMirrorLines.forEach((line, index) => {
-                    // 각 줄의 텍스트 내용 추출
-                    const lineText = line.textContent || line.innerText;
-                    console.log(`라인 ${index + 1}:`, lineText);
-                    
-                    if (lineText && lineText.trim() !== '') {
-                        code += lineText + '\n';
-                    }
-                });
-                
-                this.sourceCode = code.trim();
-                console.log('✅ CodeMirror에서 추출된 코드:', this.sourceCode);
-                return this.sourceCode;
-            }
-            
-            console.log('❌ CodeMirror 라인을 찾을 수 없음, 기존 방식 시도...');
-            
-            // 방법 3: 기존 방식도 시도
-            const codeElement = document.querySelector('#source');
-            console.log('찾은 #source 요소:', codeElement);
-            
-            if (codeElement) {
-                this.sourceCode = codeElement.textContent;
-                console.log('✅ 기존 방식으로 추출된 코드:', this.sourceCode);
-                return this.sourceCode;
-            }
-            
-            console.log('❌ 어떤 방식으로도 코드를 찾을 수 없음');
-            console.log('페이지의 모든 textarea:', document.querySelectorAll('textarea'));
-            console.log('페이지의 모든 pre 요소:', document.querySelectorAll('pre'));
-            
-            return null;
-        } catch (error) {
-            console.error('❌ 소스 코드 추출 중 오류:', error);
-            return null;
-        }
     }
 
     // status 페이지에서 제출 번호와 소스 링크 찾기
@@ -160,7 +56,87 @@ class BaekjoonDataExtractor {
         }
     }
 
-    // 전체 데이터 수집
+    // request로 HTML 요청하여 문제 정보 추출
+    async extractProblemInfoFromRequest(problemNumber) {
+        try {
+            console.log(`문제 ${problemNumber} 정보 요청 중...`);
+            
+            const response = await fetch(`https://www.acmicpc.net/problem/${problemNumber}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // 문제 제목
+            const titleElement = doc.querySelector('#problem_title');
+            const title = titleElement ? titleElement.textContent.trim() : '';
+
+            // 문제 설명
+            const descriptionElement = doc.querySelector('#problem_description');
+            const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+
+            // 입력/출력 조건
+            const inputElement = doc.querySelector('#problem_input');
+            const input = inputElement ? inputElement.textContent.trim() : '';
+
+            const outputElement = doc.querySelector('#problem_output');
+            const output = outputElement ? outputElement.textContent.trim() : '';
+
+            // 제한 사항
+            const limitElements = doc.querySelectorAll('.limit');
+            const limits = Array.from(limitElements).map(el => el.textContent.trim());
+
+            const problemData = {
+                problemNumber,
+                title,
+                description,
+                input,
+                output,
+                limits
+            };
+
+            console.log('✅ 문제 정보 추출 성공:', problemData);
+            return problemData;
+        } catch (error) {
+            console.error('❌ 문제 정보 추출 중 오류:', error);
+            return null;
+        }
+    }
+
+    // request로 HTML 요청하여 소스 코드 추출
+    async extractSourceCodeFromRequest(sourceUrl) {
+        try {
+            console.log(`소스 코드 요청 중: ${sourceUrl}`);
+            
+            const response = await fetch(sourceUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // textarea에서 직접 추출
+            const textareaElement = doc.querySelector('textarea[name="source"]');
+            if (textareaElement) {
+                const sourceCode = textareaElement.value;
+                console.log('✅ 소스 코드 추출 성공 (길이):', sourceCode.length);
+                return sourceCode;
+            }
+
+            console.log('❌ textarea를 찾을 수 없음');
+            return null;
+        } catch (error) {
+            console.error('❌ 소스 코드 추출 중 오류:', error);
+            return null;
+        }
+    }
+
+    // 전체 데이터 수집 (Request 방식)
     async collectAllData() {
         const pageType = this.detectPageType();
         
@@ -175,12 +151,6 @@ class BaekjoonDataExtractor {
                     pageType 
                 };
             }
-        } else if (pageType === 'problem') {
-            const problemInfo = await this.extractProblemInfo();
-            return { problemInfo, pageType };
-        } else if (pageType === 'source') {
-            const sourceCode = this.extractSourceCode();
-            return { sourceCode, pageType };
         }
 
         return null;
@@ -189,6 +159,8 @@ class BaekjoonDataExtractor {
 
 // 메시지 리스너 설정
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('메시지 수신:', request);
+    
     if (request.action === 'extractData') {
         const extractor = new BaekjoonDataExtractor();
         extractor.collectAllData().then(data => {
@@ -197,6 +169,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ success: false, error: error.message });
         });
         return true; // 비동기 응답을 위해 true 반환
+    }
+    
+    if (request.action === 'extractProblemInfoFromRequest') {
+        const extractor = new BaekjoonDataExtractor();
+        extractor.extractProblemInfoFromRequest(request.problemNumber).then(data => {
+            sendResponse({ success: true, data });
+        }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+        });
+        return true;
+    }
+    
+    if (request.action === 'extractSourceCodeFromRequest') {
+        const extractor = new BaekjoonDataExtractor();
+        extractor.extractSourceCodeFromRequest(request.sourceUrl).then(data => {
+            sendResponse({ success: true, data });
+        }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+        });
+        return true;
     }
 });
 

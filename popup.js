@@ -69,99 +69,70 @@ class PopupController {
         }
     }
 
-    // 추출된 데이터 처리
+    // 추출된 데이터 처리 (Request 방식)
     async handleExtractedData(data, tab) {
         if (data.pageType === 'status') {
-            // status 페이지인 경우 문제 페이지로 이동하여 정보 수집
-            await this.collectProblemInfo(data.problemNumber, tab);
-            // 제출 정보도 저장
+            // status 페이지인 경우 request로 문제 정보 수집
             this.submissionInfo = data.submissionInfo;
-        } else if (data.pageType === 'problem') {
-            // problem 페이지인 경우 문제 정보 저장
-            this.problemData = data.problemInfo;
-            this.updateProblemInfo();
-            this.showStatus('문제 정보를 성공적으로 추출했습니다.', 'success');
-        } else if (data.pageType === 'source') {
-            // source 페이지인 경우 소스 코드 저장
-            this.sourceCode = data.sourceCode;
-            this.showStatus('소스 코드를 성공적으로 추출했습니다.', 'success');
-        }
-
-        // 소스 코드 수집 시도
-        if (this.submissionInfo) {
-            console.log('submissionInfo 확인:', this.submissionInfo);
-            await this.collectSourceCode(tab);
-        } else {
-            console.log('❌ submissionInfo가 없음');
+            await this.collectProblemInfoFromRequest(data.problemNumber);
+            await this.collectSourceCodeFromRequest();
         }
     }
 
-    // 문제 정보 수집
-    async collectProblemInfo(problemNumber, tab) {
+    // request로 문제 정보 수집
+    async collectProblemInfoFromRequest(problemNumber) {
         try {
-            // 문제 페이지로 이동
-            const problemUrl = `https://www.acmicpc.net/problem/${problemNumber}`;
-            await chrome.tabs.update(tab.id, { url: problemUrl });
+            console.log('=== request로 문제 정보 수집 시작 ===');
             
-            // 페이지 로드 대기
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // content script에 문제 정보 요청
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const response = await chrome.tabs.sendMessage(tab.id, { 
+                action: 'extractProblemInfoFromRequest', 
+                problemNumber: problemNumber 
+            });
             
-            // 문제 정보 추출
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractData' });
-            if (response && response.success && response.data.problemInfo) {
-                this.problemData = response.data.problemInfo;
-                this.problemData.problemNumber = problemNumber;
+            if (response && response.success && response.data) {
+                this.problemData = response.data;
                 this.updateProblemInfo();
                 this.showStatus('문제 정보를 성공적으로 추출했습니다.', 'success');
+                console.log('✅ 문제 정보 수집 완료:', this.problemData);
+            } else {
+                console.log('❌ 문제 정보 수집 실패:', response);
+                this.showStatus('문제 정보 추출에 실패했습니다.', 'error');
             }
         } catch (error) {
-            console.error('문제 정보 수집 오류:', error);
+            console.error('❌ 문제 정보 수집 오류:', error);
+            this.showStatus('문제 정보 수집 중 오류가 발생했습니다.', 'error');
         }
     }
 
-    // 소스 코드 수집
-    async collectSourceCode(tab) {
+    // request로 소스 코드 수집
+    async collectSourceCodeFromRequest() {
         try {
-            console.log('=== collectSourceCode 시작 ===');
-            console.log('submissionInfo:', this.submissionInfo);
+            console.log('=== request로 소스 코드 수집 시작 ===');
             
             if (!this.submissionInfo) {
                 console.log('❌ submissionInfo가 없음');
                 return;
             }
 
-            // 소스 코드 페이지로 직접 이동
-            const sourceUrl = this.submissionInfo.sourceUrl;
-            console.log('소스 코드 페이지로 이동:', sourceUrl);
-            await chrome.tabs.update(tab.id, { url: sourceUrl });
+            // content script에 소스 코드 요청
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const response = await chrome.tabs.sendMessage(tab.id, { 
+                action: 'extractSourceCodeFromRequest', 
+                sourceUrl: this.submissionInfo.sourceUrl 
+            });
             
-            // 페이지 로드 대기
-            console.log('페이지 로드 대기 중... (2초)');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // 소스 코드 추출
-            console.log('소스 코드 추출 시도...');
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractData' });
-            console.log('extractData 응답:', response);
-            
-            if (response && response.success && response.data.sourceCode) {
-                this.sourceCode = response.data.sourceCode;
-                console.log('✅ 소스 코드 추출 성공:', this.sourceCode);
+            if (response && response.success && response.data) {
+                this.sourceCode = response.data;
+                console.log('✅ 소스 코드 수집 완료 (길이):', this.sourceCode.length);
                 this.showStatus('소스 코드를 성공적으로 추출했습니다.', 'success');
             } else {
-                console.log('❌ 소스 코드 추출 실패:', response);
+                console.log('❌ 소스 코드 수집 실패:', response);
             }
-            
-            // 소스 코드 추출 완료 후 내 제출 상세 페이지로 돌아가기
-            console.log('내 제출 상세 페이지로 돌아가는 중...');
-            const submissionUrl = this.submissionInfo.sourceUrl;
-            await chrome.tabs.update(tab.id, { url: submissionUrl });
-            
-            this.showStatus('내 제출 상세 페이지로 돌아갔습니다.', 'info');
-            
         } catch (error) {
             console.error('❌ 소스 코드 수집 오류:', error);
-            this.showStatus('소스 코드 추출에 실패했습니다.', 'error');
+            this.showStatus('소스 코드 수집 중 오류가 발생했습니다.', 'error');
         }
     }
 
